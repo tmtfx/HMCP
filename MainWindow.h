@@ -29,6 +29,7 @@ private:
     BScrollView*  fHistoryScroll;
     BTextControl* fInputControl;
     BButton*      fSendButton;
+    BButton*      fAbortButton;
 
     AIEngine*     fEngine;
 };

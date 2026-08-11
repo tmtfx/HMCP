@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 static const uint32 MSG_SEND_CLICKED = 'SEND';
+static const uint32 MSG_ABRT_CLICKED = 'ABCL';
 
 MainWindow::MainWindow(const char* context)
     : BWindow(BRect(100, 100, 600, 500), "Haiku MCP Client", B_TITLED_WINDOW, B_AUTO_UPDATE_SIZE_LIMITS)
@@ -47,9 +48,12 @@ MainWindow::MainWindow(const char* context)
 
     fInputControl = new BTextControl("input", "", "", new BMessage(MSG_SEND_CLICKED));
     fSendButton = new BButton("send", "Invia", new BMessage(MSG_SEND_CLICKED));
+    fAbortButton = new BButton("send", "Interrompi", new BMessage(MSG_ABRT_CLICKED));
 
     // Imposta la dimensione dei pulsanti per adattarsi perfettamente
     fSendButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNSET));
+    fAbortButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNSET));
+    fAbortButton->SetEnabled(false);
 
     // Costruisci il layout
     BLayoutBuilder::Group<>(this, B_VERTICAL, 10)
@@ -57,6 +61,7 @@ MainWindow::MainWindow(const char* context)
         .Add(fHistoryScroll, 10) // Pesa molto per occupare il massimo dello schermo
         .AddGroup(B_HORIZONTAL, 5, 1)
             .Add(fInputControl, 8)
+            .Add(fAbortButton, 2)
             .Add(fSendButton, 2)
         .End()
     .End();
@@ -76,6 +81,9 @@ void MainWindow::MessageReceived(BMessage* msg)
         case MSG_SEND_CLICKED:
             _OnSend();
             break;
+        case MSG_ABRT_CLICKED:
+        	fEngine->Abort();
+        	break;
         case MSG_AI_RESPONSE: {
             bool complete = false;
             msg->FindBool("complete", &complete);
@@ -104,6 +112,7 @@ void MainWindow::MessageReceived(BMessage* msg)
                 fInputControl->SetEnabled(true);
                 fSendButton->SetEnabled(true);
                 fInputControl->MakeFocus(true);
+                fAbortButton->SetEnabled(false);
             }
             break;
         }
@@ -150,7 +159,7 @@ void MainWindow::_OnSend()
     // Mostra il prompt dell'utente nello storico della conversazione
     _AppendText("Tu: ");
     _AppendText(text.String());
-    _AppendText("\n\nGemini: ");
+    _AppendText("\n\nLLM: ");
     fHistoryView->ScrollToSelection();
 
     // Svuota la barra di inserimento
@@ -164,7 +173,9 @@ void MainWindow::_OnSend()
         fInputControl->SetEnabled(true);
         fSendButton->SetEnabled(true);
         fInputControl->MakeFocus(true);
+        return;
     }
+    fAbortButton->SetEnabled(true);
 }
 
 void MainWindow::_AppendText(const char* text)
