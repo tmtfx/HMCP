@@ -67,7 +67,7 @@ MainWindow::MainWindow(const char* context)
 
 MainWindow::~MainWindow()
 {
-    delete fEngine;
+    //delete fEngine;
 }
 
 void MainWindow::MessageReceived(BMessage* msg)
