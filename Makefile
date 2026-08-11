@@ -7,7 +7,7 @@ CXXFLAGS = -std=c++17 -Wall -Wextra -O2
 
 # Percorsi degli Header (-I)
 # Include sia 'headers' (per risolvere <os/ai/...>) sia le sottocartelle
-INCLUDES = -I/boot/system/develop/headers -I/boot/system/develop/headers/os/ai -I/boot/home/config/non-packaged/headers/os/ai
+INCLUDES = -I/boot/home/config/non-packaged/headers/os/ai -I/boot/system/develop/headers -I/boot/system/develop/headers/os/ai
 
 # Librerie da linkare (-l) e relativi percorsi (-L)
 # Nota: -lbe è fondamentale su Haiku per Application/Interface/Layout Kit
