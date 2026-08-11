@@ -115,6 +115,16 @@ void MainWindow::MessageReceived(BMessage* msg)
             fInputControl->MakeFocus(true);
             break;
         }
+        case MSG_AI_TITLE_CHANGED: {
+        	const char* title_append=nullptr;
+        	if (msg->FindString("title",&title_append) == B_OK && title_append != nullptr) {
+        		BString title("Haiku MCP Client");
+        		title.Append(" - ");
+        		title.Append(title_append);
+        		SetTitle(title.String());
+        	}
+        	break;
+        }
         default:
             BWindow::MessageReceived(msg);
             break;
