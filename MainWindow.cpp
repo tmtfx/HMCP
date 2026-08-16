@@ -3,7 +3,6 @@
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #include "MainWindow.h"
-//#include <TextView.h>
 #include <TextControl.h>
 #include <Button.h>
 #include <ScrollView.h>
@@ -31,7 +30,7 @@ bool InputTextView::IsEnabled() {
 }
 
 void InputTextView::KeyDown(const char* bytes,
-                     int32 numBytes) {
+					 int32 numBytes) {
 	if (numBytes == 1){ //single char
 		if ((bytes[0] == B_ENTER) && !(modifiers() & (B_SHIFT_KEY| B_OPTION_KEY | B_CONTROL_KEY))) {
 			if (fEnabled) {
@@ -46,205 +45,175 @@ void InputTextView::KeyDown(const char* bytes,
 }
 
 MainWindow::MainWindow(const char* context)
-    : BWindow(BRect(100, 100, 600, 500), "Haiku MCP Client", B_TITLED_WINDOW, B_AUTO_UPDATE_SIZE_LIMITS)
+	: BWindow(BRect(100, 100, 600, 500), "Haiku MCP Client", B_TITLED_WINDOW, B_AUTO_UPDATE_SIZE_LIMITS)
 {
-    // Inizializza l'Engine di Intelligenza Artificiale
-    if (context != nullptr && context[0] != '\0') {
-        fEngine = new AIEngine(context);
-    } else {
-        fEngine = new AIEngine();
-    }
+	if (context != nullptr && context[0] != '\0') {
+		fEngine = new AIEngine(context);
+	} else {
+		fEngine = new AIEngine();
+	}
 
-    // Semplice layout di chat
-    fHistoryView = new BTextView("history");
-    fHistoryView->MakeEditable(false);
-    
-    if (context != nullptr && context[0] != '\0') {
-        BString title;
-        if (fEngine->GetTitle(title) == B_OK && !title.IsEmpty()) {
-            SetTitle(title.String());
-            BString msg;
-            msg.SetToFormat("[Contesto: %s]\n\n", title.String());
-            _AppendText(msg.String());
-        } else {
-            BString msg;
-            msg.SetToFormat("[Ripristinato contesto: %s]\n\n", context);
-            _AppendText(msg.String());
-        }
-    }
-    fHistoryView->MakeEditable(false);
-    
-    fHistoryScroll = new BScrollView("history_scroll", fHistoryView, B_WILL_DRAW, false, true);
+	fHistoryView = new BTextView("history");
+	fHistoryView->MakeEditable(false);
+	
+	if (context != nullptr && context[0] != '\0') {
+		BString title;
+		if (fEngine->GetTitle(title) == B_OK && !title.IsEmpty()) {
+			SetTitle(title.String());
+			BString msg;
+			msg.SetToFormat("[Contesto: %s]\n\n", title.String());
+			_AppendText(msg.String());
+		} else {
+			BString msg;
+			msg.SetToFormat("[Ripristinato contesto: %s]\n\n", context);
+			_AppendText(msg.String());
+		}
+	}
+	fHistoryView->MakeEditable(false);
+	
+	fHistoryScroll = new BScrollView("history_scroll", fHistoryView, B_WILL_DRAW, false, true);
 	fInputView = new InputTextView("input");
 	fInputScroll = new BScrollView("input_scroll", fInputView, B_WILL_DRAW, false, true);
-	 fInputView->SetEnabled(true);
-    //fInputControl = new BTextControl("input", "", "", new BMessage(MSG_SEND_CLICKED));
-    fSendButton = new BButton("send", "Invia", new BMessage(MSG_SEND_CLICKED));
-    fAbortButton = new BButton("send", "Interrompi", new BMessage(MSG_ABRT_CLICKED));
+	fInputView->SetEnabled(true);
+	fSendButton = new BButton("send", "Invia", new BMessage(MSG_SEND_CLICKED));
+	fAbortButton = new BButton("send", "Interrompi", new BMessage(MSG_ABRT_CLICKED));
 
-    // Imposta la dimensione dei pulsanti per adattarsi perfettamente
-    fSendButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNLIMITED));
-    fAbortButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNLIMITED));
-    fAbortButton->SetEnabled(false);
-    fInputScroll->SetExplicitMinSize(BSize(B_SIZE_UNSET, 80));   // Altezza minima per digitare
-    fInputScroll->SetExplicitMaxSize(BSize(B_SIZE_UNSET, B_SIZE_UNLIMITED)); // Può espandersi a piacere
-    fHistoryScroll->SetExplicitMinSize(BSize(B_SIZE_UNSET, 100));
-    fHistoryScroll->SetExplicitMaxSize(BSize(B_SIZE_UNSET, B_SIZE_UNLIMITED));
+	fSendButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNLIMITED));
+	fAbortButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNLIMITED));
+	fAbortButton->SetEnabled(false);
+	fInputScroll->SetExplicitMinSize(BSize(B_SIZE_UNSET, 80));   // Altezza minima per digitare
+	fInputScroll->SetExplicitMaxSize(BSize(B_SIZE_UNSET, B_SIZE_UNLIMITED)); // Può espandersi a piacere
+	fHistoryScroll->SetExplicitMinSize(BSize(B_SIZE_UNSET, 100));
+	fHistoryScroll->SetExplicitMaxSize(BSize(B_SIZE_UNSET, B_SIZE_UNLIMITED));
 
-    // Costruisci il layout
-    /*BLayoutBuilder::Group<>(this, B_VERTICAL, 10)
-        .SetInsets(10)
-        .AddSplit(B_VERTICAL, 5)
-            .Add(fHistoryScroll, 8) // Pesa molto per occupare il massimo dello schermo
-            .AddGroup(B_HORIZONTAL, 10, 2)
-                .Add(fInputScroll, 8)
-                .AddGroup(B_VERTICAL, 10, 1)
-                	.Add(fAbortButton, 2)
-                	.Add(fSendButton, 2)
-                .End()
-            .End()
-        .End()
-    .End();
-    */
-    // Costruzione del layout con BSplitView completamente ridimensionabile
-    BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
-        .SetInsets(10)
-        .AddSplit(B_VERTICAL, B_USE_SMALL_SPACING)
-            .Add(fHistoryScroll, 7.0f) // Peso iniziale storico
-            .AddGroup(B_HORIZONTAL, 10, 3.0f) // Peso iniziale input
-                .Add(fInputScroll, 1.0f)
-                .AddGroup(B_VERTICAL, 5, 0.0f) // 0.0f evita che i pulsanti forzino l'altezza
-                	//.AddGlue()
-                    .Add(fAbortButton)
-                    .Add(fSendButton)
-                    //.AddGlue() // Assegna lo spazio vuoto in basso se l'input si ingrandisce
-                .End()
-            .End()
-        .End()
-    .End();
+	BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
+		.SetInsets(10)
+		.AddSplit(B_VERTICAL, B_USE_SMALL_SPACING)
+			.Add(fHistoryScroll, 7.0f)
+			.AddGroup(B_HORIZONTAL, 10, 3.0f)
+				.Add(fInputScroll, 1.0f)
+				.AddGroup(B_VERTICAL, 5, 0.0f) // 0.0f evita che i pulsanti forzino l'altezza
+					.Add(fAbortButton)
+					.Add(fSendButton)
+				.End()
+			.End()
+		.End()
+	.End();
 
-    // Sposta il focus sul box di testo per poter digitare subito
-    fInputView->MakeFocus(true);
+	// Sposta il focus sul box di testo per poter digitare subito
+	fInputView->MakeFocus(true);
 }
 
 MainWindow::~MainWindow()
 {
-    //delete fEngine;
+	//delete fEngine;
 }
 
 void MainWindow::MessageReceived(BMessage* msg)
 {
-    switch (msg->what) {
-        case MSG_SEND_CLICKED:
-            _OnSend();
-            break;
-        case MSG_ABRT_CLICKED:
-        	fEngine->Abort();
-        	break;
-        case MSG_AI_RESPONSE: {
-            bool complete = false;
-            msg->FindBool("complete", &complete);
-            
-            if (!complete) {
-                // Pezzettino di stream asincrono arrivato
-                BString partialToken = msg->FindString("partial");
-                if (partialToken.Length() > 0) {
-                    _AppendText(partialToken.String());
-                    // Scorri in automatico verso il basso per seguire lo stream
-                    fHistoryView->ScrollToSelection();
-                }
-            } else {
-                // Generazione completata con successo
-                BString response = msg->FindString("response");
-                status_t status = B_OK;
-                msg->FindInt32("status", &status);
-                
-                if (status != B_OK) {
-                    _AppendText("\n[Errore di generazione]\n");
-                } else {
-                    _AppendText("\n\n");
-                }
-                
-                fHistoryView->ScrollToSelection();
-                //fInputScroll->SetEnabled(true);
-                 fInputView->SetEnabled(true);
-                fSendButton->SetEnabled(true);
-                fInputView->MakeFocus(true);
-                fAbortButton->SetEnabled(false);
-            }
-            break;
-        }
-        case MSG_AI_ERROR: {
-            _AppendText("\n[Errore del Server o del Plugin]\n");
-            fHistoryView->ScrollToSelection();
-            //fInputScroll->SetEnabled(true);
-             fInputView->SetEnabled(true);
-            fSendButton->SetEnabled(true);
-            fInputView->MakeFocus(true);
-            break;
-        }
-        case MSG_AI_TITLE_CHANGED: {
-        	const char* title_append=nullptr;
-        	if (msg->FindString("title",&title_append) == B_OK && title_append != nullptr) {
-        		BString title("Haiku MCP Client");
-        		title.Append(" - ");
-        		title.Append(title_append);
-        		SetTitle(title.String());
-        	}
-        	break;
-        }
-        default:
-            BWindow::MessageReceived(msg);
-            break;
-    }
+	switch (msg->what) {
+		case MSG_SEND_CLICKED:
+			_OnSend();
+			break;
+		case MSG_ABRT_CLICKED:
+			fEngine->Abort();
+			break;
+		case MSG_AI_RESPONSE: {
+			bool complete = false;
+			msg->FindBool("complete", &complete);
+			
+			if (!complete) {
+				// Pezzettino di stream asincrono arrivato
+				BString partialToken = msg->FindString("partial");
+				if (partialToken.Length() > 0) {
+					_AppendText(partialToken.String());
+					// Scorri in automatico verso il basso per seguire lo stream
+					fHistoryView->ScrollToSelection();
+				}
+			} else {
+				// Generazione completata con successo
+				BString response = msg->FindString("response");
+				status_t status = B_OK;
+				msg->FindInt32("status", &status);
+				
+				if (status != B_OK) {
+					_AppendText("\n[Errore di generazione]\n");
+				} else {
+					_AppendText("\n\n");
+				}
+				
+				fHistoryView->ScrollToSelection();
+				fInputView->SetEnabled(true);
+				fSendButton->SetEnabled(true);
+				fInputView->MakeFocus(true);
+				fAbortButton->SetEnabled(false);
+			}
+			break;
+		}
+		case MSG_AI_ERROR: {
+			_AppendText("\n[Errore del Server o del Plugin]\n");
+			fHistoryView->ScrollToSelection();
+			fInputView->SetEnabled(true);
+			fSendButton->SetEnabled(true);
+			fInputView->MakeFocus(true);
+			break;
+		}
+		case MSG_AI_TITLE_CHANGED: {
+			const char* title_append=nullptr;
+			if (msg->FindString("title",&title_append) == B_OK && title_append != nullptr) {
+				BString title("Haiku MCP Client");
+				title.Append(" - ");
+				title.Append(title_append);
+				SetTitle(title.String());
+			}
+			break;
+		}
+		default:
+			BWindow::MessageReceived(msg);
+			break;
+	}
 }
 
 bool MainWindow::QuitRequested()
 {
-    be_app->PostMessage(B_QUIT_REQUESTED);
-    return true;
+	be_app->PostMessage(B_QUIT_REQUESTED);
+	return true;
 }
 
 void MainWindow::_OnSend()
 {
-    BString text = fInputView->Text();
-    text.Trim();
-    if (text.IsEmpty()) return;
+	BString text = fInputView->Text();
+	text.Trim();
+	if (text.IsEmpty()) return;
 
-    // Disabilita i controlli durante l'interazione per prevenire spam
-    //fInputScroll->SetEnabled(false);
-     fInputView->SetEnabled(false);
-    fSendButton->SetEnabled(false);
+	fInputView->SetEnabled(false);
+	fSendButton->SetEnabled(false);
 
-    // Mostra il prompt dell'utente nello storico della conversazione
-    _AppendText("Tu: ");
-    _AppendText(text.String());
-    _AppendText("\n\nLLM: ");
-    fHistoryView->ScrollToSelection();
+	_AppendText("Tu: ");
+	_AppendText(text.String());
+	_AppendText("\n\nLLM: ");
+	fHistoryView->ScrollToSelection();
 
-    // Svuota la barra di inserimento
-    fInputView->SetText("");
+	fInputView->SetText("");
 
-    // Invia la richiesta asincrona all'ai_server passandogli questo BMessenger per lo stream
-    status_t err = fEngine->GenerateAsync(text.String(), BMessenger(this));
-    if (err != B_OK) {
-        _AppendText("[Errore di connessione al server]\n\n");
-        fHistoryView->ScrollToSelection();
-        //fInputScroll->SetEnabled(true);
-         fInputView->SetEnabled(true);
-        fSendButton->SetEnabled(true);
-        fInputView->MakeFocus(true);
-        return;
-    }
-    fAbortButton->SetEnabled(true);
+	status_t err = fEngine->GenerateAsync(text.String(), BMessenger(this));
+	if (err != B_OK) {
+		_AppendText("[Errore di connessione al server]\n\n");
+		fHistoryView->ScrollToSelection();
+		fInputView->SetEnabled(true);
+		fSendButton->SetEnabled(true);
+		fInputView->MakeFocus(true);
+		return;
+	}
+	fAbortButton->SetEnabled(true);
 }
 
 void MainWindow::_AppendText(const char* text)
 {
-    if (text == nullptr || text[0] == '\0')
-        return;
-    
-    int32 len = fHistoryView->TextLength();
-    fHistoryView->Select(len, len);
-    fHistoryView->Insert(text);
+	if (text == nullptr || text[0] == '\0')
+		return;
+	
+	int32 len = fHistoryView->TextLength();
+	fHistoryView->Select(len, len);
+	fHistoryView->Insert(text);
 }
