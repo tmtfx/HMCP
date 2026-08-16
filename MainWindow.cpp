@@ -3,17 +3,47 @@
  * All rights reserved. Distributed under the terms of the MIT license.
  */
 #include "MainWindow.h"
-#include <TextView.h>
+//#include <TextView.h>
 #include <TextControl.h>
 #include <Button.h>
 #include <ScrollView.h>
 #include <LayoutBuilder.h>
+#include <SplitView.h>
 #include <Application.h>
 #include <String.h>
 #include <stdio.h>
 
 static const uint32 MSG_SEND_CLICKED = 'SEND';
 static const uint32 MSG_ABRT_CLICKED = 'ABCL';
+
+void InputTextView::SetEnabled(bool enable) {
+	fEnabled = enable;
+	if (enable) {
+		SetViewColor(ui_color(B_DOCUMENT_BACKGROUND_COLOR));
+		Invalidate();
+	} else {
+		 SetViewColor(ui_color(B_TOOL_TIP_BACKGROUND_COLOR));
+		 Invalidate();
+	}
+}
+bool InputTextView::IsEnabled() {
+	return fEnabled;
+}
+
+void InputTextView::KeyDown(const char* bytes,
+                     int32 numBytes) {
+	if (numBytes == 1){ //single char
+		if ((bytes[0] == B_ENTER) && !(modifiers() & (B_SHIFT_KEY| B_OPTION_KEY | B_CONTROL_KEY))) {
+			if (fEnabled) {
+				be_app->WindowAt(0)->PostMessage(MSG_SEND_CLICKED);
+				return;
+			} else {
+				return;
+			}
+		}
+	}
+	return BTextView::KeyDown(bytes,numBytes);
+}
 
 MainWindow::MainWindow(const char* context)
     : BWindow(BRect(100, 100, 600, 500), "Haiku MCP Client", B_TITLED_WINDOW, B_AUTO_UPDATE_SIZE_LIMITS)
@@ -45,29 +75,56 @@ MainWindow::MainWindow(const char* context)
     fHistoryView->MakeEditable(false);
     
     fHistoryScroll = new BScrollView("history_scroll", fHistoryView, B_WILL_DRAW, false, true);
-
-    fInputControl = new BTextControl("input", "", "", new BMessage(MSG_SEND_CLICKED));
+	fInputView = new InputTextView("input");
+	fInputScroll = new BScrollView("input_scroll", fInputView, B_WILL_DRAW, false, true);
+	 fInputView->SetEnabled(true);
+    //fInputControl = new BTextControl("input", "", "", new BMessage(MSG_SEND_CLICKED));
     fSendButton = new BButton("send", "Invia", new BMessage(MSG_SEND_CLICKED));
     fAbortButton = new BButton("send", "Interrompi", new BMessage(MSG_ABRT_CLICKED));
 
     // Imposta la dimensione dei pulsanti per adattarsi perfettamente
-    fSendButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNSET));
-    fAbortButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNSET));
+    fSendButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNLIMITED));
+    fAbortButton->SetExplicitMaxSize(BSize(100, B_SIZE_UNLIMITED));
     fAbortButton->SetEnabled(false);
+    fInputScroll->SetExplicitMinSize(BSize(B_SIZE_UNSET, 80));   // Altezza minima per digitare
+    fInputScroll->SetExplicitMaxSize(BSize(B_SIZE_UNSET, B_SIZE_UNLIMITED)); // Può espandersi a piacere
+    fHistoryScroll->SetExplicitMinSize(BSize(B_SIZE_UNSET, 100));
+    fHistoryScroll->SetExplicitMaxSize(BSize(B_SIZE_UNSET, B_SIZE_UNLIMITED));
 
     // Costruisci il layout
-    BLayoutBuilder::Group<>(this, B_VERTICAL, 10)
+    /*BLayoutBuilder::Group<>(this, B_VERTICAL, 10)
         .SetInsets(10)
-        .Add(fHistoryScroll, 10) // Pesa molto per occupare il massimo dello schermo
-        .AddGroup(B_HORIZONTAL, 5, 1)
-            .Add(fInputControl, 8)
-            .Add(fAbortButton, 2)
-            .Add(fSendButton, 2)
+        .AddSplit(B_VERTICAL, 5)
+            .Add(fHistoryScroll, 8) // Pesa molto per occupare il massimo dello schermo
+            .AddGroup(B_HORIZONTAL, 10, 2)
+                .Add(fInputScroll, 8)
+                .AddGroup(B_VERTICAL, 10, 1)
+                	.Add(fAbortButton, 2)
+                	.Add(fSendButton, 2)
+                .End()
+            .End()
+        .End()
+    .End();
+    */
+    // Costruzione del layout con BSplitView completamente ridimensionabile
+    BLayoutBuilder::Group<>(this, B_VERTICAL, 0)
+        .SetInsets(10)
+        .AddSplit(B_VERTICAL, B_USE_SMALL_SPACING)
+            .Add(fHistoryScroll, 7.0f) // Peso iniziale storico
+            .AddGroup(B_HORIZONTAL, 10, 3.0f) // Peso iniziale input
+                .Add(fInputScroll, 1.0f)
+                .AddGroup(B_VERTICAL, 5, 0.0f) // 0.0f evita che i pulsanti forzino l'altezza
+                	//.AddGlue()
+                    .Add(fAbortButton)
+                    .Add(fSendButton)
+                    //.AddGlue() // Assegna lo spazio vuoto in basso se l'input si ingrandisce
+                .End()
+            .End()
         .End()
     .End();
 
     // Sposta il focus sul box di testo per poter digitare subito
-    fInputControl->MakeFocus(true);
+    fInputView->MakeFocus(true);
 }
 
 MainWindow::~MainWindow()
@@ -109,9 +166,10 @@ void MainWindow::MessageReceived(BMessage* msg)
                 }
                 
                 fHistoryView->ScrollToSelection();
-                fInputControl->SetEnabled(true);
+                //fInputScroll->SetEnabled(true);
+                 fInputView->SetEnabled(true);
                 fSendButton->SetEnabled(true);
-                fInputControl->MakeFocus(true);
+                fInputView->MakeFocus(true);
                 fAbortButton->SetEnabled(false);
             }
             break;
@@ -119,9 +177,10 @@ void MainWindow::MessageReceived(BMessage* msg)
         case MSG_AI_ERROR: {
             _AppendText("\n[Errore del Server o del Plugin]\n");
             fHistoryView->ScrollToSelection();
-            fInputControl->SetEnabled(true);
+            //fInputScroll->SetEnabled(true);
+             fInputView->SetEnabled(true);
             fSendButton->SetEnabled(true);
-            fInputControl->MakeFocus(true);
+            fInputView->MakeFocus(true);
             break;
         }
         case MSG_AI_TITLE_CHANGED: {
@@ -148,12 +207,13 @@ bool MainWindow::QuitRequested()
 
 void MainWindow::_OnSend()
 {
-    BString text = fInputControl->Text();
+    BString text = fInputView->Text();
     text.Trim();
     if (text.IsEmpty()) return;
 
     // Disabilita i controlli durante l'interazione per prevenire spam
-    fInputControl->SetEnabled(false);
+    //fInputScroll->SetEnabled(false);
+     fInputView->SetEnabled(false);
     fSendButton->SetEnabled(false);
 
     // Mostra il prompt dell'utente nello storico della conversazione
@@ -163,16 +223,17 @@ void MainWindow::_OnSend()
     fHistoryView->ScrollToSelection();
 
     // Svuota la barra di inserimento
-    fInputControl->SetText("");
+    fInputView->SetText("");
 
     // Invia la richiesta asincrona all'ai_server passandogli questo BMessenger per lo stream
     status_t err = fEngine->GenerateAsync(text.String(), BMessenger(this));
     if (err != B_OK) {
         _AppendText("[Errore di connessione al server]\n\n");
         fHistoryView->ScrollToSelection();
-        fInputControl->SetEnabled(true);
+        //fInputScroll->SetEnabled(true);
+         fInputView->SetEnabled(true);
         fSendButton->SetEnabled(true);
-        fInputControl->MakeFocus(true);
+        fInputView->MakeFocus(true);
         return;
     }
     fAbortButton->SetEnabled(true);

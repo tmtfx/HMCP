@@ -7,11 +7,26 @@
 
 #include <Window.h>
 #include <AICommands.h>
+#include <TextView.h>
 
-class BTextView;
+//class BTextView;
 class BTextControl;
 class BButton;
 class BScrollView;
+
+class InputTextView : public BTextView {
+public:
+	InputTextView(const char* name) : BTextView(name) 
+	{
+		fEnabled=true;
+	};
+	//virtual ~InputTextView() {};
+	virtual void KeyDown(const char* bytes, int32 numBytes);
+	void SetEnabled(bool enable);
+	bool IsEnabled();
+private:
+	bool fEnabled;
+};
 
 class MainWindow : public BWindow {
 public:
@@ -27,7 +42,9 @@ private:
 
     BTextView*    fHistoryView;
     BScrollView*  fHistoryScroll;
-    BTextControl* fInputControl;
+    InputTextView*    fInputView;
+    BScrollView*  fInputScroll;
+    //BTextControl* fInputControl;
     BButton*      fSendButton;
     BButton*      fAbortButton;
 
